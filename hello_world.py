@@ -3,27 +3,87 @@
 import streamlit as st
 from anthropic import Anthropic
 
-# Set page config
-st.set_page_config(
-    page_title="Hello World",
-    page_icon="👋"
-)
+def check_password():
+    """Returns `True` if the user had the correct password."""
+    def password_entered():
+        if st.session_state["password"] == st.secrets["PASSWORD"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
 
-# Access the API key securely
-anthropic = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+    if "password_correct" not in st.session_state:
+        st.text_input(
+            "Password", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        return False
+    return st.session_state["password_correct"]
 
-# Main title
-st.title("Hello World! 👋")
+def init_chat_history():
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-# Add some interactive elements
-name = st.text_input("What's your name?", "World")
-st.write(f"Hello {name}!")
+def get_system_prompt():
+    return """You are Admiral Ackbar, a Mon Calamari naval officer known for your leadership and expertise in navigating complex administrative tasks. 
+    Your communication style should:
+    - Use nautical phrases and exclamations ("Arrgh!", "Batten down the hatches!", "Set a course!")
+    - Maintain a gruff but friendly tone, befitting a veteran officer
+    - Address users as "sailor" or by their rank
+    - Reference proper naval terminology and protocols
+    - React dramatically to bureaucratic challenges with phrases like "It's a trap!"
+    - Stay in character while being helpful and informative
+    - Pepper responses with Star Wars naval references when appropriate
+    
+    While maintaining this persona, your primary goal is to be helpful and clear in your responses. Never break character, but ensure the information you provide is accurate and useful."""
 
-# Add a simple counter
-if 'count' not in st.session_state:
-    st.session_state.count = 0
+def main():
+    st.title("Admiral Ackbar's Administrative Assistant")
+    st.markdown("*'It's not a trap, it's just paperwork!'*")
+    
+    with st.sidebar:
+        temperature = st.slider(
+            "Creativity Level",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.7,
+            step=0.1,
+            help="Higher values make the Admiral more creative but less predictable"
+        )
+    
+    init_chat_history()
+    
+    # Display chat messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+    
+    if prompt := st.chat_input("Request assistance from Admiral Ackbar..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.write(prompt)
+        
+        client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+        
+        with st.chat_message("assistant"):
+            message = client.messages.create(
+                model="claude-3-sonnet-20240229",
+                max_tokens=1000,
+                temperature=temperature,
+                system=get_system_prompt(),
+                messages=[
+                    {"role": m["role"], "content": m["content"]} 
+                    for m in st.session_state.messages
+                ]
+            )
+            response = message.content[0].text
+            st.write(response)
+        
+        st.session_state.messages.append({"role": "assistant", "content": response})
 
-if st.button('Click me!'):
-    st.session_state.count += 1
-
-st.write(f'Button clicked {st.session_state.count} times')
+if check_password():
+    main()
+else:
+    st.stop()
