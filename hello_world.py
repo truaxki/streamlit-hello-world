@@ -68,6 +68,10 @@ def main():
         client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
         
         with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
+            
+            # Create a streaming response
             message = client.messages.create(
                 model="claude-3-sonnet-20240229",
                 max_tokens=1000,
@@ -76,12 +80,24 @@ def main():
                 messages=[
                     {"role": m["role"], "content": m["content"]} 
                     for m in st.session_state.messages
-                ]
+                ],
+                stream=True
             )
-            response = message.content[0].text
-            st.write(response)
+            
+            # Process the stream
+            for chunk in message:
+                # Skip non-content events
+                if hasattr(chunk, 'type') and chunk.type == 'content_block_start':
+                    continue
+                
+                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'text'):
+                    full_response += chunk.delta.text
+                    message_placeholder.markdown(full_response + "▌")
+            
+            # Final update without the cursor
+            message_placeholder.markdown(full_response)
         
-        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 if check_password():
     main()
