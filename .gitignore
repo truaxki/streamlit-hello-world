@@ -1,16 +1,6 @@
- # Virtual Environment
-venv/
-venv/*
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Environment Variables
 .env
-
-# IDE specific files
-.idea/
-.vscode/
-*.swp 
+.streamlit/secrets.toml
+__pycache__/
+*.pyc
+.DS_Store
+venv/
