@@ -1,16 +1,16 @@
-# Tokens and credentials
-current_tokens.json
-*.token
-*.cookie
+ # Virtual Environment
+venv/
+venv/*
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-.env
-venv/
 
-# IDE
-.vscode/
+# Environment Variables
+.env
+
+# IDE specific files
 .idea/
+.vscode/
 *.swp 
